@@ -3,7 +3,6 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  httpAgent: undefined,
   timeout: 120000, // 2 minute timeout for TTS generation
 });
 
