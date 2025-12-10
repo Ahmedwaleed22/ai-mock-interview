@@ -33,94 +33,135 @@ export default function Home() {
         throw new Error("No response body");
       }
 
-      // Stream audio: read chunks and start playing once we have enough data
-      // We'll continue reading all chunks but start playing early
+      // Use MediaSource for seamless streaming without interruption
       const reader = response.body.getReader();
-      const chunks: BlobPart[] = [];
-      let totalBytes = 0;
-      let hasStartedPlaying = false;
-      let audio: HTMLAudioElement | null = null;
-      let audioUrl: string | null = null;
-      const minBytesToStart = 30000; // Start playing after ~30KB (much faster than full file)
-
-      // Read stream and start playing once we hit the threshold
-      (async () => {
+      const chunks: Uint8Array[] = [];
+      let totalSize = 0;
+      let audioElement: HTMLAudioElement | null = null;
+      let mediaSource: MediaSource | null = null;
+      let sourceBuffer: SourceBuffer | null = null;
+      let hasStartedPlayback = false;
+      
+      // Get content type from response headers
+      const contentType = response.headers.get("content-type") || "audio/mpeg";
+      console.log("Content-Type:", contentType);
+      
+      // Setup MediaSource
+      mediaSource = new MediaSource();
+      audioElement = new Audio();
+      const audioUrl = URL.createObjectURL(mediaSource);
+      audioElement.src = audioUrl;
+      
+      console.log("MediaSource created");
+      
+      mediaSource.addEventListener("sourceopen", async () => {
+        console.log("MediaSource opened");
+        
         try {
+          // Create source buffer with proper codec
+          sourceBuffer = mediaSource!.addSourceBuffer(contentType);
+          console.log("SourceBuffer created");
+          
+          // Helper to wait for source buffer to finish updating
+          const waitForSourceBuffer = async () => {
+            return new Promise<void>((resolve) => {
+              if (!sourceBuffer!.updating) {
+                resolve();
+              } else {
+                const onUpdateEnd = () => {
+                  sourceBuffer!.removeEventListener("updateend", onUpdateEnd);
+                  resolve();
+                };
+                sourceBuffer!.addEventListener("updateend", onUpdateEnd);
+              }
+            });
+          };
+          
+          // Start appending chunks as they arrive
+          let chunkCount = 0;
+          let lastChunkTime = Date.now();
+          
           while (true) {
             const { done, value } = await reader.read();
             
             if (done) {
-              // If we haven't started playing yet, play now with all data
-              if (!hasStartedPlaying && chunks.length > 0) {
-                const blob = new Blob(chunks, { type: "audio/mpeg" });
-                audioUrl = URL.createObjectURL(blob);
-                audio = new Audio(audioUrl);
-                
-                audio.play().catch((err) => {
-                  console.error("Error playing audio:", err);
-                  setError("Failed to play audio");
-                });
-                
-                audio.addEventListener("ended", () => {
-                  URL.revokeObjectURL(audioUrl!);
-                });
-                
-                setIsLoading(false);
-              }
+              // Wait for last buffer to be appended
+              await waitForSourceBuffer();
+              const totalTime = Date.now() - lastChunkTime;
+              console.log(`Stream complete after ${totalTime}ms. Total chunks: ${chunks.length}, Total size: ${totalSize} bytes`);
+              mediaSource!.endOfStream();
               break;
             }
             
+            if (!value || value.byteLength === 0) {
+              console.warn("Received empty chunk, skipping");
+              continue;
+            }
+            
             chunks.push(value);
-            totalBytes += value.length;
+            totalSize += value.byteLength;
+            chunkCount++;
             
-            // Start playing once we have enough data (continue reading rest in background)
-            if (!hasStartedPlaying && totalBytes >= minBytesToStart) {
-              // Create blob from all accumulated chunks so far
-              // We'll continue reading and the browser will buffer ahead
-              const blob = new Blob(chunks, { type: "audio/mpeg" });
-              audioUrl = URL.createObjectURL(blob);
-              audio = new Audio(audioUrl);
-              
-              // Start playing immediately
-              audio.play().catch((err) => {
-                console.error("Error playing audio:", err);
-                setError("Failed to play audio");
-              });
-              
-              audio.addEventListener("ended", () => {
-                URL.revokeObjectURL(audioUrl!);
-              });
-              
-              hasStartedPlaying = true;
-              setIsLoading(false);
-              
-              // Continue reading remaining chunks - we'll need to recreate the blob
-              // But for now, the initial blob should have enough buffer
+            const timeSinceLastChunk = Date.now() - lastChunkTime;
+            lastChunkTime = Date.now();
+            
+            if (chunkCount % 10 === 0 || value.byteLength > 100000) {
+              console.log(`Chunk ${chunkCount}: ${value.byteLength} bytes. Total: ${totalSize} bytes. Time since last: ${timeSinceLastChunk}ms`);
             }
-          }
-          
-          // If we started playing early, we need to update with final blob containing all chunks
-          if (hasStartedPlaying && audio && chunks.length > 0) {
-            // Create final blob with ALL chunks
-            const finalBlob = new Blob(chunks, { type: "audio/mpeg" });
-            const finalUrl = URL.createObjectURL(finalBlob);
             
-            // Update audio source with complete blob
-            audio.src = finalUrl;
-            audio.load(); // Reload with new source
+            // Wait for previous buffer to finish updating before appending new one
+            await waitForSourceBuffer();
             
-            // Clean up old URL
-            if (audioUrl) {
-              URL.revokeObjectURL(audioUrl);
+            try {
+              sourceBuffer!.appendBuffer(value);
+              
+              // Start playing once we have enough buffered
+              if (!hasStartedPlayback && totalSize > 150 * 1024) {
+                console.log(`Threshold reached at chunk ${chunkCount}, starting playback with ${totalSize} bytes`);
+                audioElement!.play().catch((err) => {
+                  console.error("Play error:", err);
+                  setError("Failed to start playback: " + err.message);
+                });
+                hasStartedPlayback = true;
+              }
+            } catch (e) {
+              console.error("Error appending buffer:", e);
+              // If append fails, try again next iteration
+              chunks.pop();
+              totalSize -= value.byteLength;
             }
-            audioUrl = finalUrl;
           }
         } catch (err) {
-          console.error("Error reading stream:", err);
-          setError("Failed to read audio stream");
-          setIsLoading(false);
+          console.error("MediaSource error:", err);
+          setError("Failed to stream audio: " + (err instanceof Error ? err.message : "Unknown error"));
+          try {
+            mediaSource!.endOfStream("network");
+          } catch (e) {
+            console.error("Error ending stream:", e);
+          }
         }
-      })();
+      });
+      
+      audioElement.addEventListener("loadstart", () => {
+        console.log("Audio loading started");
+      });
+      
+      audioElement.addEventListener("canplay", () => {
+        console.log("Audio can play");
+      });
+      
+      audioElement.addEventListener("ended", () => {
+        console.log("Audio playback ended");
+        URL.revokeObjectURL(audioUrl);
+        setIsLoading(false);
+      });
+      
+      audioElement.addEventListener("error", (e) => {
+        console.error("Audio error:", e, audioElement?.error);
+        setError(`Audio error: ${audioElement?.error?.message || "Unknown error"}`);
+        setIsLoading(false);
+        URL.revokeObjectURL(audioUrl);
+      });
     } catch (err) {
       console.error("Error generating speech:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
