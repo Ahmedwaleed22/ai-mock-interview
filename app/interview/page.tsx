@@ -109,10 +109,10 @@ export default function InterviewPage() {
             </button>
             <button 
                 onClick={() => setIsChatOpen(!isChatOpen)}
-                className={`p-3 rounded-full transition-colors relative ${isChatOpen ? 'bg-blue-600 text-white hover:bg-blue-500' : 'hover:bg-white/5 text-gray-400 hover:text-white'}`}
+                className={`p-3 rounded-full transition-colors relative ${isChatOpen ? 'bg-blue-600 text-white hover:bg-blue-500' : 'hover:bg-white/5 text-gray-400 hover:text-white'} cursor-pointer`}
             >
                 <MessageSquare className="w-5 h-5" />
-                {!isChatOpen && <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-[#0a0a0a]"></span>}
+                {!isChatOpen && <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-[#0a0a0a] animate-pulse"></span>}
             </button>
         </div>
       </div>
