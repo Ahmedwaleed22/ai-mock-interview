@@ -79,7 +79,7 @@ export default function InterviewPage() {
            <span className="h-4 w-px bg-white/10"></span>
            <div className="flex flex-col">
                <span className="font-medium text-sm text-white tracking-tight">Technical Interview</span>
-               <span className="text-xs text-gray-500">session-id-2938</span>
+               <span className="text-xs text-gray-500">{Math.random().toString(36).substring(2, 6) + "-" + Math.random().toString(36).substring(2, 6) + "-" + Math.random().toString(36).substring(2, 6)}</span>
            </div>
         </div>
 
