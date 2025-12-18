@@ -52,7 +52,7 @@ Get up and running in **less than 3 minutes**!
 
 1️⃣ **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/ai-mock-interview.git
+git clone https://github.com/Ahmedwaleed22/Interviewee.git
 cd ai-mock-interview/frontend
 ```
 
@@ -135,7 +135,7 @@ The fastest way to get Interviewee live:
 
 Your app will be live in under a minute. ✨
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/ai-mock-interview)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Ahmedwaleed22/Interviewee)
 
 ### Other Deployment Options
 
@@ -198,7 +198,7 @@ Need help? We're here for you!
 
 - 📧 **Email**: support@interviewee.app
 - 💬 **Discord**: [Join our community](https://discord.gg/interviewee)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/ai-mock-interview/issues)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/Ahmedwaleed22/Interviewee/issues)
 - 📖 **Docs**: [Full Documentation](https://docs.interviewee.app)
 
 ---
@@ -213,6 +213,6 @@ If Interviewee helps you land your dream job, please give us a star ⭐ on GitHu
 
 **Made with ❤️ for job seekers everywhere**
 
-[Get Started Now](#-quick-start) • [Report Bug](https://github.com/yourusername/ai-mock-interview/issues) • [Request Feature](https://github.com/yourusername/ai-mock-interview/issues)
+[Get Started Now](#-quick-start) • [Report Bug](https://github.com/Ahmedwaleed22/Interviewee/issues) • [Request Feature](https://github.com/Ahmedwaleed22/Interviewee/issues)
 
 </div>
